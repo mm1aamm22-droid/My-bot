@@ -1,13 +1,13 @@
 import telebot
-import requests
+from telebot import types
 import os
 from flask import Flask
 from threading import Thread
 
-# 1. سيرفر وهمي لإبقاء البوت حياً على Render
+# 1. السيرفر الوهمي
 app = Flask('')
 @app.route('/')
-def home(): return "Bot is Alive!"
+def home(): return "Online"
 
 def run():
     port = int(os.environ.get("PORT", 10000))
@@ -16,32 +16,22 @@ def run():
 def keep_alive():
     Thread(target=run).start()
 
-# 2. إعدادات البوت
+# 2. إعدادات البوت (تأكد من التوكن)
 API_TOKEN = '8629591404:AAElD9enpGE52EH8DNaNVeLJp14cU9eD64o'
 bot = telebot.TeleBot(API_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.reply_to(message, "🌟 أهلاً بك! أرسل رابط تيك توك وسأقوم بتحميله فوراً (بدون علامة مائية).")
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    btn1 = types.InlineKeyboardButton("📐 الرياضيات", callback_data="m")
+    btn2 = types.InlineKeyboardButton("📖 العربية", callback_data="a")
+    markup.add(btn1, btn2)
+    bot.reply_to(message, "📚 مرحباً بك في بوت الشهادة السودانية!\nاختر المادة:", reply_markup=markup)
 
-@bot.message_handler(func=lambda m: 'tiktok.com' in m.text)
-def handle_tiktok(message):
-    msg = bot.reply_to(message, "⏳ جاري تجاوز الحظر وتحميل الفيديو...")
-    try:
-        # استخدام API وسيط لتجاوز حظر تيك توك
-        api_url = f"https://api.tiklydown.eu.org/api/download?url={message.text}"
-        res = requests.get(api_url).json()
-        
-        video_url = res['video']['noWatermark']
-        
-        # إرسال الفيديو مباشرة من الرابط (أسرع ولا يستهلك مساحة السيرفر)
-        bot.send_video(message.chat.id, video_url, caption="✅ تم التحميل بنجاح!")
-        bot.delete_message(message.chat.id, msg.message_id)
-        
-    except Exception as e:
-        bot.edit_message_text(f"❌ عذراً، تيك توك يفرض قيوداً إضافية حالياً.\nالخطأ: {str(e)}", message.chat.id, msg.message_id)
+@bot.callback_query_handler(func=lambda call: True)
+def cb(call):
+    bot.send_message(call.message.chat.id, "⏳ جاري تجهيز الملفات لهذه المادة...")
 
 if __name__ == "__main__":
     keep_alive()
-    print("🚀 البوت يعمل الآن...")
     bot.infinity_polling()
